@@ -1,13 +1,16 @@
-FROM mcr.microsoft.com/dotnet/sdk:6.0 AS build-env
-WORKDIR /app
-
-COPY . ./
-
-RUN dotnet restore
-
-RUN dotnet publish -c Release -o out
-
-FROM mcr.microsoft.com/dotnet/aspnet:6.0
-WORKDIR /app
-COPY --from=build-env /app/out .
-ENTRYPOINT ["dotnet", "DotNet.Docker.dll"]
+ FROM mcr.microsoft.com/dotnet/core/aspnet:3.1-buster-slim AS base
+ WORKDIR /app
+ EXPOSE 80
+ FROM mcr.microsoft.com/dotnet/core/sdk:3.1-buster AS build
+ WORKDIR /src
+ COPY ["DevOpsTestApp.csproj", ""]
+ RUN dotnet restore "./DevOpsTestApp.csproj"
+ COPY . .
+ WORKDIR "/src/."
+ RUN dotnet build "DevOpsTestApp.csproj" -c Release -o /app/build
+ FROM build AS publish
+ RUN dotnet publish "DevOpsTestApp.csproj" -c Release -o /app/publish
+ FROM base AS final
+ WORKDIR /app
+ COPY --from=publish /app/publish .
+ ENTRYPOINT ["dotnet", "DevOpsTestApp.dll"]
